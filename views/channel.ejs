@@ -1,0 +1,37 @@
+<html>
+<head>
+<style>
+p {
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   display: block;
+   margin: 2px;
+}
+</style>
+</head>
+<body>
+<h1>
+#<%= channel.name %>
+</h1>
+<hr>
+<% pins.forEach(function(pin) { %>
+    <p>
+    <%= new Date(pin.updatedAt).toLocaleString() %>
+    <a href="<%= pin.message %>">
+        <b>@<%= pin.author_name %>:</b>
+        <% if (pin.content) { %>
+            <%= pin.content %>
+        <% } else { %>
+            <i>Attachment only</i>
+        <% } %>
+    </a>
+    </p>
+<% }); %>
+<% if (pins.length == 0) { %>
+no pins here :(
+<% } %>
+<hr>
+<a href="../">Back to server</a>
+</body>
+</html>

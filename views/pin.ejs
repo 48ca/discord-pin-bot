@@ -1,0 +1,35 @@
+<html>
+<body>
+<h2>
+<%= msg.author.username %>
+</h2>
+Pinned by <b><%= pin.pinner_name %></b> on
+<%= new Date(msg.createdTimestamp) %>
+<p>
+<% if (msg.content) { %>
+<pre>
+<%= msg.content %>
+</pre>
+<% } else { %>
+<i>No content</i>
+<% } %>
+</p>
+<% for (let attachment of msg.attachments.values()) { %>
+    <hr>
+    <div style="border-left: dashed gray 1px; margin-left: 10px; padding-left: 10px">
+        <p>
+        Attachment: <a href="<%= attachment.url %>"><%= attachment.url.substring(attachment.url.lastIndexOf("/") + 1) %></a></p>
+        <% var ends = function (ext) { return attachment.url.endsWith("." + ext) }; %>
+        <% if (ends("jpg") || ends("png") || ends("gif")) { %>
+            <img width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></img>
+        <% } else if (ends("mkv") || ends("mp4") || ends("avi") || ends("webm")) { %>
+            <video controls width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></video>
+        <% } else if (ends("mp3") || ends("aac") || ends("wav") || ends("ogg")) { %>
+            <audio controls width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></audio>
+        <% } %>
+    </div>
+<% } %>
+<hr>
+<a href="./">Back to channel</a>
+</body>
+</html>
