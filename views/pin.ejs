@@ -1,15 +1,37 @@
 <html>
+<head>
+<style>
+.top-container {
+    display: grid;
+    grid-template-columns: 150px auto;
+}
+.avatar {
+    grid-column-start: 1;
+    grid-column-end: 2;
+}
+.info {
+    grid-column-start: 2;
+}
+</style>
+</head>
 <body>
+<div class="top-container">
+<div class="avatar">
+<img src="https://cdn.discordapp.com/avatars/<%= msg.author.id %>/<%= msg.author.avatar%>.webp"></img>
+</div>
+<div class="info">
 <h2>
-<%= msg.author.username %>
+@<%= msg.author.username %>
 </h2>
 <p>
-Posted <%= new Date(msg.createdTimestamp).toLocaleString() %>
+Posted in <a href="./">#<%= msg.channel.name %></a> at <%= new Date(msg.createdTimestamp).toLocaleString() %>
 </p>
 <p>
-Pinned by <b><%= pin.pinner_name %></b> on
+Pinned by <b><%= pin.pinner_name %></b> at
 <%= new Date(pin.createdAt).toLocaleString() %>
 </p>
+</div>
+</div>
 <hr>
 <p>
 <% if (msg.content) { %>
