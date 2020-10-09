@@ -39,7 +39,6 @@ Pin.sync().then(function() {
 
 var pin = function(guild, channel, pinner, desired_message_id) {
   channel.messages.fetch(desired_message_id).then(function(message) {
-      console.log("About to coom");
       Pin.findOne({
         where: {
             guild: guild.id,
