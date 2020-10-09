@@ -3,8 +3,14 @@
 <h2>
 <%= msg.author.username %>
 </h2>
+<p>
+Posted <%= new Date(msg.createdTimestamp).toLocaleString() %>
+</p>
+<p>
 Pinned by <b><%= pin.pinner_name %></b> on
-<%= new Date(msg.createdTimestamp) %>
+<%= new Date(pin.createdAt).toLocaleString() %>
+</p>
+<hr>
 <p>
 <% if (msg.content) { %>
 <pre>
@@ -30,6 +36,9 @@ Pinned by <b><%= pin.pinner_name %></b> on
     </div>
 <% } %>
 <hr>
+<p>
+<a href="https://discordapp.com/channels/<%= msg.channel.guild.id%>/<%= msg.channel.id %>/<%=msg.id%>">View this message in Discord</a>
+</p>
 <a href="./">Back to channel</a>
 </body>
 </html>
