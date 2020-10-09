@@ -79,7 +79,19 @@ client.on("message", async message => {
     message.channel.send("Pins can be found here: http://pins.jhoughton.me/" + message.channel.guild.id + "/" + message.channel.id + "/");
     return;
   }
-  pin(message.channel.guild, message.channel, message.author, pin_id);
+  if (pin_id == "") {
+    message.channel.messages.fetch({ limit: 2 }).then(function(messages) {
+      console.log(messages);
+      for (let msg of messages.values()) {
+          if (msg.id != message.id) {
+            pin(message.channel.guild, message.channel, message.author, msg.id);
+            break;
+          }
+      }
+    });
+  } else {
+      pin(message.channel.guild, message.channel, message.author, pin_id);
+  }
 });
 
 client.on('shardError', function(e) {
