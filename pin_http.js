@@ -63,8 +63,10 @@ app.get('/:guild/:channel/:message', function(req, res) {
             return res.redirect(req.params.message + "/saved");
         }
 
+        var pinner = guild.members.cache.get(pin.pinner).user;
+
         channel.messages.fetch(pin.message).then(function(msg) {
-            res.render('pin.ejs', {pin: pin, msg: msg}, function(err, html) {
+            res.render('pin.ejs', {pin: pin, pinner: pinner, msg: msg}, function(err, html) {
                 res.send(html);
                 if (err) console.error(err);
             });

@@ -21,13 +21,13 @@
 </div>
 <div class="info">
 <h2>
-@<%= msg.author.username %>
+@<%= msg.author.username %><i style="color:grey">#<%= msg.author.discriminator %></i>
 </h2>
 <p>
 Posted in <a href="./">#<%= msg.channel.name %></a> at <%= new Date(msg.createdTimestamp).toLocaleString() %>
 </p>
 <p>
-Pinned by <b><%= pin.pinner_name %></b> at
+Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discriminator %></i> at
 <%= new Date(pin.createdAt).toLocaleString() %>
 </p>
 </div>
