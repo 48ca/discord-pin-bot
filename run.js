@@ -37,6 +37,23 @@ Pin.sync().then(function() {
     console.log("Table created");
 });
 
+var deletePin = function(guild, channel, pinner, desired_message_id) {
+  channel.messages.fetch(desired_message_id).then(function(message) {
+      Pin.findOne({
+        where: {
+            guild: guild.id,
+            channel: channel.id,
+            message: message.id
+        }
+      }).then(function(row) {
+        row.destroy();
+        channel.send("Deleted " + message.id);
+      });
+  }).catch(function() {
+    channel.send("Could not find pin " + desired_message_id);
+  });
+};
+
 var pin = function(guild, channel, pinner, desired_message_id) {
   channel.messages.fetch(desired_message_id).then(function(message) {
       Pin.findOne({
@@ -72,7 +89,13 @@ client.on("message", async message => {
   if(message.channel.type == 'dm') return;
   if(message.author.bot) return;
   var lower = message.content.toLowerCase();
-  if(!lower.startsWith(MENTION_STRING)) return;
+  if(!lower.startsWith(MENTION_STRING)) {
+    if (!lower.startsWith("unpin")) return;
+      // unpin
+      var del_pin = lower.substring("unpin".length).trimLeft().trimRight();
+      deletePin(message.channel.guild, message.channel, message.author, del_pin);
+      return;
+  }
   var pin_id = lower.substring(MENTION_STRING.length).trimLeft().trimRight();
   if (pin_id == "list") {
     message.channel.send("Pins can be found here: http://pins.jhoughton.me/" + message.channel.guild.id + "/" + message.channel.id + "/");

@@ -1,0 +1,48 @@
+<html>
+<head>
+</style>
+</head>
+<body>
+<div class="top-container">
+<div class="info">
+<h2>
+@<%= pin.author_name %>
+</h2>
+<p>
+Posted in
+<% if (channel) { %>
+    <a href="./">#<%= channel.name %></a>.
+<% } else { %>
+    <i>a deleted channel.</i>
+<% } %>
+</p>
+<p>
+Pinned by <b><%= pin.pinner_name %></b> at
+<%= new Date(pin.createdAt).toLocaleString() %>
+</p>
+</div>
+</div>
+<hr>
+<p>
+<% if (pin.content) { %>
+<pre>
+<%= pin.content %>
+</pre>
+<% } else { %>
+<i>No content</i>
+<% } %>
+</p>
+<hr>
+<a href="../">Back to channel</a>
+<hr>
+<% if (msg_exists) { %>
+<p>
+The message you are viewing is still available on Discord. To view the message with up-to-date edits, click the following link.
+</p>
+<a href="../<%= pin.message %>">View current message text</a>
+<% } else { %>
+<p>
+This message has been deleted from Discord. You are viewing the message text as it was when the message was pinned. More recent revisions of the message cannot be fetched.
+<% } %>
+</body>
+</html>

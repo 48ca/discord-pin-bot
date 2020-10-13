@@ -59,8 +59,14 @@ Pinned by <b><%= pin.pinner_name %></b> at
 <% } %>
 <hr>
 <p>
-<a href="https://discordapp.com/channels/<%= msg.channel.guild.id%>/<%= msg.channel.id %>/<%=msg.id%>">View this message in Discord</a>
-</p>
 <a href="./">Back to channel</a>
+</p>
+<hr>
+<p>
+<a href="https://discordapp.com/channels/<%= msg.channel.guild.id%>/<%= msg.channel.id %>/<%=msg.id%>" target="_blank">View this message in Discord</a>
+</p>
+<p>
+<a href="<%= msg.id %>/saved">Message text when pinned</a>
+</p>
 </body>
 </html>

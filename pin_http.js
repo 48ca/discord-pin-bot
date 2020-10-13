@@ -29,9 +29,6 @@ app.get('/:guild/:channel/', function(req, res) {
         return res.send("cannot find guild");
     }
     var channel = guild.channels.cache.get(req.params.channel);
-    if (!channel) {
-        return res.send("cannot get channel");
-    }
     db.findAll({
       where: {
         guild: req.params.guild,
@@ -59,11 +56,11 @@ app.get('/:guild/:channel/:message', function(req, res) {
       } else {
         var guild = client.guilds.cache.get(pin.guild);
         if (!guild) {
-            return res.send("bug: cannot find guild");
+            return res.redirect(req.params.message + "/saved");
         }
         var channel = guild.channels.cache.get(pin.channel);
         if (!channel) {
-            return res.send("bug: cannot find channel");
+            return res.redirect(req.params.message + "/saved");
         }
 
         channel.messages.fetch(pin.message).then(function(msg) {
@@ -71,7 +68,42 @@ app.get('/:guild/:channel/:message', function(req, res) {
                 res.send(html);
                 if (err) console.error(err);
             });
+        }).catch(function(e) {
+            res.redirect(req.params.message + "/saved");
         });
+      }
+    });
+});
+
+app.get('/:guild/:channel/:message/saved', function(req, res) {
+    if (!check_connected()) { return res.send(not_connected); }
+    db.findOne({
+      where: {
+        guild: req.params.guild,
+        channel: req.params.channel,
+        message: req.params.message
+      }
+    }).then(function(pin) {
+      if (!pin) {
+        res.send("pin not found");
+      } else {
+        var guild = client.guilds.cache.get(pin.guild);
+        var channel = guild ? guild.channels.cache.get(pin.channel) : undefined;
+        var render = function(msg_exists) {
+            res.render('pin_deleted.ejs', {msg_exists: msg_exists, pin: pin, channel:channel, guild:guild}, function(err, html) {
+                res.send(html);
+                if (err) console.error(err);
+            });
+        }
+        if (channel) {
+            channel.messages.fetch(pin.message).then(function(msg) {
+                return render(true);
+            }).catch(function(e) {
+                return render(false);
+            });
+        } else {
+            return render(false);
+        }
       }
     });
 });

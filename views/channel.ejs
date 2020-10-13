@@ -12,7 +12,11 @@ p {
 </head>
 <body>
 <h1>
-#<%= channel.name %>
+<% if (channel) { %>
+    #<%= channel.name %>
+<% } else { %>
+    <i>deleted channel</i>
+<% } %>
 </h1>
 <hr>
 <% pins.forEach(function(pin) { %>
