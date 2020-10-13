@@ -33,8 +33,6 @@ Pinned by <b><%= pin.pinner_name %></b> at
 <% } %>
 </p>
 <hr>
-<a href="../">Back to channel</a>
-<hr>
 <% if (msg_exists) { %>
 <p>
 The message you are viewing is still available on Discord. To view the message with up-to-date edits and attachments, click the following link.
@@ -44,5 +42,8 @@ The message you are viewing is still available on Discord. To view the message w
 <p>
 This message has been deleted from Discord. You are viewing the information that is still contained in the Pin Bot database, including original message text, original author and pinner nicknames, and the time of pinning. More recent revisions of the text as well as message attachments cannot be fetched.
 <% } %>
+</p>
+<hr>
+<a href="../">Back to channel</a>
 </body>
 </html>

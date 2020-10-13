@@ -59,14 +59,14 @@ Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discrim
 <% } %>
 <hr>
 <p>
-<a href="./">Back to channel</a>
-</p>
-<hr>
-<p>
 <a href="https://discordapp.com/channels/<%= msg.channel.guild.id%>/<%= msg.channel.id %>/<%=msg.id%>" target="_blank">View this message in Discord</a>
 </p>
 <p>
 <a href="<%= msg.id %>/saved">Message text when pinned</a>
+</p>
+<hr>
+<p>
+<a href="./">Back to channel</a>
 </p>
 </body>
 </html>
