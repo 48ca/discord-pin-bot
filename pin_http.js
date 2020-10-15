@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var client = undefined;
 var db = undefined;
+var aliases = undefined;
 
 var check_connected = function() {
     return client != undefined && db != undefined;
@@ -14,12 +15,25 @@ app.get('/:guild/', function(req, res) {
     if (!check_connected()) { return res.send(not_connected); }
     var guild = client.guilds.cache.get(req.params.guild);
     if (!guild) {
-        return res.send("cannot find guild");
+        var alias = aliases.findOne({ where: { shortname: req.params.guild } } ).then(function(alias) {
+            if (!alias) {
+                return res.send("cannot find guild");
+            }
+            guild = client.guilds.cache.get(alias.guild);
+            if (!guild) {
+                return res.send("bad alias");
+            }
+            res.render('guild.ejs', {guild: guild}, function(err, html) {
+                res.send(html);
+                if (err) console.error(err);
+            });
+        });
+    } else {
+        res.render('guild.ejs', {guild: guild}, function(err, html) {
+            res.send(html);
+            if (err) console.error(err);
+        });
     }
-    res.render('guild.ejs', {guild: guild}, function(err, html) {
-        res.send(html);
-        if (err) console.error(err);
-    });
 });
 
 app.get('/:guild/:channel/', function(req, res) {
@@ -35,7 +49,7 @@ app.get('/:guild/:channel/', function(req, res) {
         channel: req.params.channel,
       }
     }).then(function(pins) {
-        res.render('channel.ejs', {channel: channel, pins: pins}, function(err, html) {
+        res.render('channel.ejs', {guild: guild, channel: channel, pins: pins}, function(err, html) {
             res.send(html);
             if (err) console.error(err);
         });
@@ -110,9 +124,10 @@ app.get('/:guild/:channel/:message/saved', function(req, res) {
     });
 });
 
-var server = function(discord_client, db_conn) {
+var server = function(discord_client, pin_db, alias_db) {
     client = discord_client;
-    db = db_conn;
+    db = pin_db;
+    aliases = alias_db;
     console.log("discord connected to http");
 }
 

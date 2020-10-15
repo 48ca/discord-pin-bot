@@ -6,6 +6,7 @@ const client = new Discord.Client();
 var process = require('process');
 
 var Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
 const { exec } = require("child_process");
 
@@ -13,9 +14,14 @@ var pin_http = require("./pin_http");
 
 var interval = undefined;
 
-var MENTION_STRING = "pin"; // "<@!763803843074719794>";
+var MENTION_STRING = "pin "; // "<@!763803843074719794>";
 
 var seq = new Sequelize('sqlite:db.sqlite3');
+
+var Alias = seq.define('alias', {
+    guild: { type: Sequelize.STRING },
+    shortname: { type: Sequelize.STRING },
+});
 
 var Pin = seq.define('pin', {
     guild: { type: Sequelize.STRING },
@@ -30,11 +36,15 @@ var Pin = seq.define('pin', {
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-  pin_http.server(client, Pin);
+  pin_http.server(client, Pin, Alias);
 });
 
 Pin.sync().then(function() {
     console.log("Table created");
+});
+
+Alias.sync().then(function() {
+    console.log("Alias table created");
 });
 
 var deletePin = function(guild, channel, pinner, desired_message_id) {
@@ -99,6 +109,29 @@ client.on("message", async message => {
   var pin_id = lower.substring(MENTION_STRING.length).trimLeft().trimRight();
   if (pin_id == "list") {
     message.channel.send("Pins can be found here: http://pins.jhoughton.me/" + message.channel.guild.id + "/" + message.channel.id + "/");
+    return;
+  }
+  if (pin_id.startsWith("alias")) {
+    var desired_alias = pin_id.substring("alias".length).trimLeft();
+    Alias.findOne({
+        where: { [Op.or]: [
+                { guild: message.channel.guild.id },
+                { shortname: desired_alias }
+            ]}
+    }).then(function(alias_row) {
+        if (alias_row) {
+            message.channel.send("Alias already exists for this server or the alias is taken.");
+        } else {
+            Alias.create({
+                guild: message.channel.guild.id,
+                shortname: desired_alias
+            }).then(function() {
+                message.channel.send("Alias created");
+            });
+        }
+    }).catch(function(e) {
+        console.log("Error executing query: " + e);
+    });
     return;
   }
   if (pin_id == "") {

@@ -6,7 +6,7 @@
 <% for (let channel of guild.channels.cache.values()) { %>
 <% if (channel.type != "text") continue; %>
 <p style="margin-top: 2px; margin-bottom: 2px">
-<a href="<%=channel.id%>/">#<%= channel.name %></a>
+<a href="/<%= guild.id %>/<%=channel.id%>/">#<%= channel.name %></a>
 </p>
 <% } %>
 </body>

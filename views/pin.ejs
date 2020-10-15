@@ -48,7 +48,7 @@ Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discrim
         <p>
         Attachment: <a href="<%= attachment.url %>"><%= attachment.url.substring(attachment.url.lastIndexOf("/") + 1) %></a></p>
         <% var ends = function (ext) { return attachment.url.endsWith("." + ext) }; %>
-        <% if (ends("jpg") || ends("png") || ends("gif")) { %>
+        <% if (ends("jpg") || ends("webp") || ends("png") || ends("gif")) { %>
             <img width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></img>
         <% } else if (ends("mkv") || ends("mp4") || ends("avi") || ends("webm")) { %>
             <video controls width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></video>
