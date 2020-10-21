@@ -24,7 +24,10 @@ p {
     <%= new Date(pin.updatedAt).toLocaleString() %>
     <a href="<%= pin.message %>">
         <b>@<%= pin.author_name %>:</b>
-        <% if (pin.content) { %>
+        <% var formatted_text = format(pin.content, guild); %>
+        <% if (formatted_text) { %>
+            <%= formatted_text %>
+        <% } else if (pin.content) { %>
             <%= pin.content %>
         <% } else { %>
             <i>Attachment only</i>

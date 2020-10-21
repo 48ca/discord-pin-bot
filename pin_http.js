@@ -15,6 +15,14 @@ app.get("/", function(req, res) {
     return res.render('index.ejs');
 });
 
+var format_msg_content = function(content, guild) {
+    return content.replace(/<@!(\d+)>/g, function(full, id) {
+        var user = guild.members.cache.get(id).user;
+        if (!user) { return full; }
+        return "<@" + user.username + "#" + user.discriminator + ">";
+    });
+}
+
 app.get('/:guild/', function(req, res) {
     if (!check_connected()) { return res.send(not_connected); }
     var guild = client.guilds.cache.get(req.params.guild);
@@ -53,19 +61,12 @@ app.get('/:guild/:channel/', function(req, res) {
         channel: req.params.channel,
       }
     }).then(function(pins) {
-        res.render('channel.ejs', {guild: guild, channel: channel, pins: pins}, function(err, html) {
+        res.render('channel.ejs', {format: format_msg_content, guild: guild, channel: channel, pins: pins}, function(err, html) {
             res.send(html);
             if (err) console.error(err);
         });
     });
 });
-
-var format_msg_content = function(content, guild) {
-    return content.replace(/<@!(\d+)>/, function(full, id) {
-        var user = guild.members.cache.get(id).user;
-        return "<@" + user.username + "#" + user.discriminator + ">";
-    });
-}
 
 app.get('/:guild/:channel/:message', function(req, res) {
     if (!check_connected()) { return res.send(not_connected); }
