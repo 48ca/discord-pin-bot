@@ -18,6 +18,8 @@ var MENTION_STRING = "pin "; // "<@!763803843074719794>";
 
 var seq = new Sequelize('sqlite:db.sqlite3');
 
+var emoji_name = "like";
+
 var Alias = seq.define('alias', {
     guild: { type: Sequelize.STRING },
     shortname: { type: Sequelize.STRING },
@@ -47,7 +49,7 @@ Alias.sync().then(function() {
     console.log("Alias table created");
 });
 
-var deletePin = function(guild, channel, pinner, desired_message_id) {
+var deletePin = function(orig_message, guild, channel, pinner, desired_message_id) {
   channel.messages.fetch(desired_message_id).then(function(message) {
       Pin.findOne({
         where: {
@@ -56,15 +58,26 @@ var deletePin = function(guild, channel, pinner, desired_message_id) {
             message: message.id
         }
       }).then(function(row) {
+        if (!row) {
+            channel.send("Pin does not exist");
+            return;
+        }
         row.destroy();
-        channel.send("Deleted " + message.id);
+        var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
+        if (!emoji_id) {
+            channel.send("Unpinned " + desired_message_id);
+        } else {
+            orig_message.react(emoji_id).catch(function(e) {
+                channel.send("Unpinned " + desired_message_id);
+            });;
+        }
       });
   }).catch(function() {
     channel.send("Could not find pin " + desired_message_id);
   });
 };
 
-var pin = function(guild, channel, pinner, desired_message_id) {
+var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
   channel.messages.fetch(desired_message_id).then(function(message) {
       Pin.findOne({
         where: {
@@ -87,7 +100,14 @@ var pin = function(guild, channel, pinner, desired_message_id) {
           content: message.content,
           message: message.id
         }).then(function() {
-            channel.send("Pinned http://pins.jhoughton.me/" + guild.id + "/" + channel.id + "/" + message.id);
+            var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
+            if (!emoji_id) {
+                channel.send("Pinned http://pins.jhoughton.me/" + guild.id + "/" + channel.id + "/" + message.id);
+            } else {
+                orig_message.react(emoji_id).catch(function(e) {
+                    console.log("Could not react: " + e);
+                });
+            }
         });
       });
   }).catch(function(e) {
@@ -100,10 +120,22 @@ client.on("message", async message => {
   if(message.author.bot) return;
   var lower = message.content.toLowerCase();
   if(!lower.startsWith(MENTION_STRING)) {
+    if (lower == "pin") {
+        message.channel.messages.fetch({ limit: 2 }).then(function(messages) {
+          console.log(messages);
+          for (let msg of messages.values()) {
+              if (msg.id != message.id) {
+                pin(message, message.channel.guild, message.channel, message.author, msg.id);
+                break;
+              }
+          }
+        });
+        return;
+    }
     if (!lower.startsWith("unpin")) return;
       // unpin
       var del_pin = lower.substring("unpin".length).trimLeft().trimRight();
-      deletePin(message.channel.guild, message.channel, message.author, del_pin);
+      deletePin(message, message.channel.guild, message.channel, message.author, del_pin);
       return;
   }
   var pin_id = lower.substring(MENTION_STRING.length).trimLeft().trimRight();
@@ -133,19 +165,8 @@ client.on("message", async message => {
         console.log("Error executing query: " + e);
     });
     return;
-  }
-  if (pin_id == "") {
-    message.channel.messages.fetch({ limit: 2 }).then(function(messages) {
-      console.log(messages);
-      for (let msg of messages.values()) {
-          if (msg.id != message.id) {
-            pin(message.channel.guild, message.channel, message.author, msg.id);
-            break;
-          }
-      }
-    });
   } else {
-      pin(message.channel.guild, message.channel, message.author, pin_id);
+      pin(message, message.channel.guild, message.channel, message.author, pin_id);
   }
 });
 

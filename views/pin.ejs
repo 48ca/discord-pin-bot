@@ -12,6 +12,9 @@
 .info {
     grid-column-start: 2;
 }
+img, video, audio {
+    max-width: calc(100vw - 50px);
+}
 </style>
 </head>
 <body>
@@ -34,7 +37,11 @@ Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discrim
 </div>
 <hr>
 <p>
-<% if (msg.content) { %>
+<% if (formatted_message_content) { %>
+<pre>
+<%= formatted_message_content %>
+</pre>
+<% } else if (msg.content) { %>
 <pre>
 <%= msg.content %>
 </pre>
@@ -49,11 +56,11 @@ Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discrim
         Attachment: <a href="<%= attachment.url %>"><%= attachment.url.substring(attachment.url.lastIndexOf("/") + 1) %></a></p>
         <% var ends = function (ext) { return attachment.url.endsWith("." + ext) }; %>
         <% if (ends("jpg") || ends("webp") || ends("png") || ends("gif")) { %>
-            <img width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></img>
+            <img width="<%= attachment.width %>" src="<%= attachment.url %>"></img>
         <% } else if (ends("mkv") || ends("mp4") || ends("avi") || ends("webm")) { %>
-            <video controls width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></video>
+            <video controls width="<%= attachment.width %>" src="<%= attachment.url %>"></video>
         <% } else if (ends("mp3") || ends("aac") || ends("wav") || ends("ogg")) { %>
-            <audio controls width="<%= attachment.width %>" height="<%= attachment.height %>" src="<%= attachment.url %>"></audio>
+            <audio controls width="<%= attachment.width %>" src="<%= attachment.url %>"></audio>
         <% } %>
     </div>
 <% } %>

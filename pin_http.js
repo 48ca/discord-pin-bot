@@ -11,6 +11,10 @@ var not_connected = "Discord not connected. Come back later.";
 
 app.set('view engine', 'ejs');
 
+app.get("/", function(req, res) {
+    return res.render('index.ejs');
+});
+
 app.get('/:guild/', function(req, res) {
     if (!check_connected()) { return res.send(not_connected); }
     var guild = client.guilds.cache.get(req.params.guild);
@@ -56,6 +60,13 @@ app.get('/:guild/:channel/', function(req, res) {
     });
 });
 
+var format_msg_content = function(content, guild) {
+    return content.replace(/<@!(\d+)>/, function(full, id) {
+        var user = guild.members.cache.get(id).user;
+        return "<@" + user.username + "#" + user.discriminator + ">";
+    });
+}
+
 app.get('/:guild/:channel/:message', function(req, res) {
     if (!check_connected()) { return res.send(not_connected); }
     db.findOne({
@@ -80,7 +91,8 @@ app.get('/:guild/:channel/:message', function(req, res) {
         var pinner = guild.members.cache.get(pin.pinner).user;
 
         channel.messages.fetch(pin.message).then(function(msg) {
-            res.render('pin.ejs', {pin: pin, pinner: pinner, msg: msg}, function(err, html) {
+            var formatted_message_content = format_msg_content(msg.content, guild);
+            res.render('pin.ejs', {pin: pin, pinner: pinner, msg: msg, formatted_message_content: formatted_message_content}, function(err, html) {
                 res.send(html);
                 if (err) console.error(err);
             });
