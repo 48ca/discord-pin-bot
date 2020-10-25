@@ -123,7 +123,7 @@ client.on("message", async message => {
   }
   var cmd = match_res[1];
   var arg = match_res[2];
-  if (cmd == "unpin") {
+  if (cmd == "unpin" && arg) {
     return deletePin(message, message.channel.guild, message.channel, message.author, arg);
   }
   else if (cmd == "pin") {
