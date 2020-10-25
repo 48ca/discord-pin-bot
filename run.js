@@ -48,30 +48,26 @@ Alias.sync().then(function() {
 });
 
 var deletePin = function(orig_message, guild, channel, pinner, desired_message_id) {
-  channel.messages.fetch(desired_message_id).then(function(message) {
-      Pin.findOne({
-        where: {
-            guild: guild.id,
-            channel: channel.id,
-            message: message.id
-        }
-      }).then(function(row) {
-        if (!row) {
-            channel.send("Pin does not exist");
-            return;
-        }
-        row.destroy();
-        var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
-        if (!emoji_id) {
+  Pin.findOne({
+    where: {
+        guild: guild.id,
+        channel: channel.id,
+        message: desired_message_id
+    }
+  }).then(function(row) {
+    if (!row) {
+        channel.send("Pin does not exist");
+        return;
+    }
+    row.destroy();
+    var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
+    if (!emoji_id) {
+        channel.send("Unpinned " + desired_message_id);
+    } else {
+        orig_message.react(emoji_id).catch(function(e) {
             channel.send("Unpinned " + desired_message_id);
-        } else {
-            orig_message.react(emoji_id).catch(function(e) {
-                channel.send("Unpinned " + desired_message_id);
-            });;
-        }
-      });
-  }).catch(function() {
-    channel.send("Could not find pin " + desired_message_id);
+        });;
+    }
   });
 };
 
