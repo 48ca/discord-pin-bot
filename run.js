@@ -14,8 +14,6 @@ var pin_http = require("./pin_http");
 
 var interval = undefined;
 
-var MENTION_STRING = "pin "; // "<@!763803843074719794>";
-
 var seq = new Sequelize('sqlite:db.sqlite3');
 
 var emoji_name = "like";
@@ -117,10 +115,48 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
 
 client.on("message", async message => {
   if(message.channel.type == 'dm') return;
-  if(message.author.bot) return;
   var lower = message.content.toLowerCase();
-  if(!lower.startsWith(MENTION_STRING)) {
-    if (lower == "pin") {
+  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|list|alias (.*$)))?$/);
+  if (!match_res) {
+    // ignored
+    return;
+  }
+  var cmd = match_res[1];
+  var arg = match_res[2];
+  if (cmd == "unpin") {
+    return deletePin(message, message.channel.guild, message.channel, message.author, arg);
+  }
+  else if (cmd == "pin") {
+    if (arg == "list") {
+        message.channel.send("Pins can be found here: http://pins.jhoughton.me/" + message.channel.guild.id + "/" + message.channel.id + "/");
+        return;
+    }
+    else if (arg.startsWith("alias")) {
+        var desired_alias = match_res[3];
+        Alias.findOne({
+            where: { [Op.or]: [
+                    { guild: message.channel.guild.id },
+                    { shortname: desired_alias }
+                ]}
+        }).then(function(alias_row) {
+            if (alias_row) {
+                message.channel.send("Alias already exists for this server or the alias is taken.");
+            } else {
+                Alias.create({
+                    guild: message.channel.guild.id,
+                    shortname: desired_alias
+                }).then(function() {
+                    message.channel.send("Alias created");
+                });
+            }
+        }).catch(function(e) {
+            console.log("Error executing query: " + e);
+        });
+        return;
+    }
+    else if (arg) {
+      pin(message, message.channel.guild, message.channel, message.author, arg);
+    } else {
         message.channel.messages.fetch({ limit: 2 }).then(function(messages) {
           console.log(messages);
           for (let msg of messages.values()) {
@@ -132,41 +168,6 @@ client.on("message", async message => {
         });
         return;
     }
-    if (!lower.startsWith("unpin")) return;
-      // unpin
-      var del_pin = lower.substring("unpin".length).trimLeft().trimRight();
-      deletePin(message, message.channel.guild, message.channel, message.author, del_pin);
-      return;
-  }
-  var pin_id = lower.substring(MENTION_STRING.length).trimLeft().trimRight();
-  if (pin_id == "list") {
-    message.channel.send("Pins can be found here: http://pins.jhoughton.me/" + message.channel.guild.id + "/" + message.channel.id + "/");
-    return;
-  }
-  if (pin_id.startsWith("alias")) {
-    var desired_alias = pin_id.substring("alias".length).trimLeft();
-    Alias.findOne({
-        where: { [Op.or]: [
-                { guild: message.channel.guild.id },
-                { shortname: desired_alias }
-            ]}
-    }).then(function(alias_row) {
-        if (alias_row) {
-            message.channel.send("Alias already exists for this server or the alias is taken.");
-        } else {
-            Alias.create({
-                guild: message.channel.guild.id,
-                shortname: desired_alias
-            }).then(function() {
-                message.channel.send("Alias created");
-            });
-        }
-    }).catch(function(e) {
-        console.log("Error executing query: " + e);
-    });
-    return;
-  } else {
-      pin(message, message.channel.guild, message.channel, message.author, pin_id);
   }
 });
 
