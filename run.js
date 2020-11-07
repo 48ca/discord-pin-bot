@@ -16,6 +16,8 @@ var interval = undefined;
 
 var seq = new Sequelize('sqlite:db.sqlite3');
 
+var BASE_URL = "pins.jhoughton.me";
+
 var emoji_name = "like";
 
 var Alias = seq.define('alias', {
@@ -81,7 +83,7 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
         }
       }).then(function(exists) {
         if (exists) { 
-            channel.send("Already pinned http://pins.jhoughton.me/" + guild.id + "/" + channel.id + "/" + message.id);
+            channel.send("Already pinned http://" + BASE_URL + "/" + guild.id + "/" + channel.id + "/" + message.id);
             return;
         }
         Pin.create({
@@ -96,7 +98,7 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
         }).then(function() {
             var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
             if (!emoji_id) {
-                channel.send("Pinned http://pins.jhoughton.me/" + guild.id + "/" + channel.id + "/" + message.id);
+                channel.send("Pinned http://" + BASE_URL + "/" + guild.id + "/" + channel.id + "/" + message.id);
             } else {
                 orig_message.react(emoji_id).catch(function(e) {
                     console.log("Could not react: " + e);
@@ -110,9 +112,11 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
 }
 
 client.on("message", async message => {
-  if(message.channel.type == 'dm') return;
+  if(message.channel.type == 'dm') {
+    return;
+  }
   var lower = message.content.toLowerCase();
-  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|list|alias (.*$)))?$/);
+  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|list|alias (.*$)))?$/);
   if (!match_res) {
     // ignored
     return;
@@ -123,11 +127,24 @@ client.on("message", async message => {
     return deletePin(message, message.channel.guild, message.channel, message.author, arg);
   }
   else if (cmd == "pin") {
-    if (arg == "list") {
-        message.channel.send("Pins can be found here: http://pins.jhoughton.me/" + message.channel.guild.id + "/" + message.channel.id + "/");
+    if (arg == "link") {
+        Pin.findOne({
+            order: [ ['createdAt', 'DESC' ] ],
+        }).then(function(entry) {
+            if (entry) {
+                var last_pin = entry.message;
+                message.channel.send("Last pin: http://" + BASE_URL + "/" + message.channel.guild.id + "/" + message.channel.id + "/" + last_pin);
+            } else {
+                message.channel.send("No pins");
+            }
+        });
         return;
     }
-    else if (arg.startsWith("alias")) {
+    if (arg == "list") {
+        message.channel.send("Pins can be found here: http://" + BASE_URL + "/" + message.channel.guild.id + "/" + message.channel.id + "/");
+        return;
+    }
+    else if (arg && arg.startsWith("alias")) {
         var desired_alias = match_res[3];
         Alias.findOne({
             where: { [Op.or]: [

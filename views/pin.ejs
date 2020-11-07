@@ -34,7 +34,11 @@ img, video, audio {
 Posted in <a href="./">#<%= msg.channel.name %></a> at <%= new Date(msg.createdTimestamp).toLocaleString() %>
 </p>
 <p>
-Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discriminator %></i> at
+<% if (pinner) { %>
+    Pinned by <b><%= pinner.username %></b><i style="color:grey">#<%= pinner.discriminator %></i> at
+<% } else { %>
+    Pinned by <b><%= pin.pinner_name %></b><i style="color:grey">#????</i> at
+<% } %>
 <%= new Date(pin.createdAt).toLocaleString() %>
 </p>
 </div>

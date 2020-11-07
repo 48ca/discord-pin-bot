@@ -17,6 +17,7 @@ app.get("/", function(req, res) {
 
 var format_msg_content = function(content, guild) {
     return content.replace(/<@!(\d+)>/g, function(full, id) {
+        if (!guild.members.cache.get(id)) { return full; }
         var user = guild.members.cache.get(id).user;
         if (!user) { return full; }
         return "<@" + user.username + "#" + user.discriminator + ">";
@@ -89,7 +90,8 @@ app.get('/:guild/:channel/:message', function(req, res) {
             return res.redirect(req.params.message + "/saved");
         }
 
-        var pinner = guild.members.cache.get(pin.pinner).user;
+        var pinner_user = guild.members.cache.get(pin.pinner);
+        var pinner = pinner_user ? pinner_user.user : undefined;
 
         channel.messages.fetch(pin.message).then(function(msg) {
             var formatted_message_content = format_msg_content(msg.content, guild);
