@@ -36,20 +36,24 @@ var format_msg_content = function(content, guild) {
 }
 
 var check_authed = function(req, res) {
-    if (req.body && req.body.otp && otps[req.body.otp]) {
-        req.session.cookie.maxAge = cookie_age;
-        var otp_obj = otps[req.body.otp];
-        var id = otp_obj.client;
-        req.session.client_id = id;
-        var t = setTimeout(function() {
-            delete authed_clients[id];
-        }, cookie_age);
-        if (id in authed_clients) {
-            clearTimeout(authed_clients[id].timeout);
-            delete authed_clients[id];
+    if (req.body && req.body.otp) {
+        var given_otp = req.body.otp.toUpperCase();
+        var otp_obj = otps[given_otp];
+        if (otp_obj) {
+            req.session.cookie.maxAge = cookie_age;
+            var id = otp_obj.client;
+            req.session.client_id = id;
+            var t = setTimeout(function() {
+                delete authed_clients[id];
+            }, cookie_age);
+            if (id in authed_clients) {
+                clearTimeout(authed_clients[id].timeout);
+                delete authed_clients[id];
+            }
+            authed_clients[id] = { guild: otp_obj.guild, timeout: t };
+            delete otps[given_otp];
+            return true;
         }
-        authed_clients[id] = { guild: otp_obj.guild, timeout: t };
-        return true;
     }
     if (req.session.client_id && req.session.client_id in authed_clients) {
         return true;
