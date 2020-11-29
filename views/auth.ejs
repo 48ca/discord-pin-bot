@@ -1,0 +1,25 @@
+<html>
+<head>
+</head>
+<body>
+<h1>
+You need to provide a one-time password to access Pin Bot.
+</h1>
+<p>
+You can request a OTP by posting `pin otp` in a channel that Pin Bot can see.
+</p>
+<% if (reason) { %>
+<hr>
+<p>
+<%= reason %>
+</p>
+<% } %>
+<hr>
+<form method="post" style="margin: 10px">
+<input type="text" name="otp" placeholder="ABCD">
+<input type="submit">
+</form>
+<hr>
+<a href="/">Home</a>
+</body>
+</html>

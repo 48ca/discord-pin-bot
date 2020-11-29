@@ -18,6 +18,14 @@ var seq = new Sequelize('sqlite:db.sqlite3');
 
 var BASE_URL = "pins.jhoughton.me";
 
+var generate_otp = function() {
+    var otp = "";
+    for (var i = 0; i < 4; ++i) {
+        otp += String.fromCharCode(65 + Math.random() * 26);
+    }
+    return otp;
+}
+
 var emoji_name = "like";
 
 var Alias = seq.define('alias', {
@@ -36,9 +44,12 @@ var Pin = seq.define('pin', {
     content: { type: Sequelize.STRING }
 });
 
+var otps = {};
+var otps_clientids = {};
+
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-  pin_http.server(client, Pin, Alias);
+  pin_http.server(client, Pin, Alias, otps_clientids);
 });
 
 Pin.sync().then(function() {
@@ -116,7 +127,7 @@ client.on("message", async message => {
     return;
   }
   var lower = message.content.toLowerCase();
-  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|list|alias (.*$)))?$/);
+  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|otp|list|alias (.*$)))?$/);
   if (!match_res) {
     // ignored
     return;
@@ -138,6 +149,20 @@ client.on("message", async message => {
                 message.channel.send("No pins");
             }
         });
+        return;
+    }
+    if (arg == "otp") {
+        var id = message.author.id;
+        var otp = generate_otp();
+        var obj = { otp: otp, guild: message.channel.guild.id, client: id };
+        otps[id] = obj;
+        otps_clientids[otp] = obj;
+        setTimeout(function() {
+            delete otps[id];
+            delete otps_clientids[otp];
+        }, 30000);
+        message.author.send(`OTP: ${otp} (valid for 30s)`);
+        message.delete();
         return;
     }
     if (arg == "list") {
@@ -174,7 +199,9 @@ client.on("message", async message => {
           console.log(messages);
           for (let msg of messages.values()) {
               if (msg.id != message.id) {
-                pin(message, message.channel.guild, message.channel, message.author, msg.id);
+                if (msg.content != "pin") {
+                    pin(message, message.channel.guild, message.channel, message.author, msg.id);
+                }
                 break;
               }
           }

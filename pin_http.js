@@ -1,4 +1,7 @@
 var express = require('express');
+var session = require('express-session');
+var bodyParser = require('body-parser');
+
 var app = express();
 var client = undefined;
 var db = undefined;
@@ -11,9 +14,17 @@ var not_connected = "Discord not connected. Come back later.";
 
 app.set('view engine', 'ejs');
 
-app.get("/", function(req, res) {
+app.all("/", function(req, res) {
     return res.render('index.ejs');
 });
+
+app.use(bodyParser.urlencoded({extended: true}));
+
+var otps = {};
+
+var authed_clients = {};
+
+var cookie_age = 1000 * 60 * 30;
 
 var format_msg_content = function(content, guild) {
     return content.replace(/<@!(\d+)>/g, function(full, id) {
@@ -24,8 +35,84 @@ var format_msg_content = function(content, guild) {
     });
 }
 
-app.get('/:guild/', function(req, res) {
+var check_authed = function(req, res) {
+    if (req.body && req.body.otp && otps[req.body.otp]) {
+        req.session.cookie.maxAge = cookie_age;
+        var otp_obj = otps[req.body.otp];
+        var id = otp_obj.client;
+        req.session.client_id = id;
+        var t = setTimeout(function() {
+            delete authed_clients[id];
+        }, cookie_age);
+        if (id in authed_clients) {
+            clearTimeout(authed_clients[id].timeout);
+            delete authed_clients[id];
+        }
+        authed_clients[id] = { guild: otp_obj.guild, timeout: t };
+        return true;
+    }
+    if (req.session.client_id && req.session.client_id in authed_clients) {
+        return true;
+    }
+    res.render('auth.ejs', {reason: ""}, function(err, html) {
+        res.send(html);
+        if (err) console.error(err);
+    });
+    return false;
+}
+
+app.set('trust proxy', 1);
+app.use(session({
+    secret: "memetown",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { sameSite: "strict" }
+}));
+
+app.all(/.*/, function(req, res, next) {
     if (!check_connected()) { return res.send(not_connected); }
+    if (!check_authed(req, res)) return;
+    next();
+});
+
+app.all("/:guild/*", function(req, res, next) {
+    var guild_id = req.params.guild;
+    var id = req.session.client_id;
+    if (!id) {
+        res.status(500);
+        return res.send("500 Authed but no id");
+    }
+    var guild = client.guilds.cache.get(guild_id);
+    if (!guild) {
+        var alias = aliases.findOne({ where: { shortname: guild_id } } ).then(function(alias) {
+            if (!alias) {
+                return res.send("cannot find guild");
+            }
+            guild = client.guilds.cache.get(alias.guild);
+            if (!guild) {
+                return res.send("bad alias");
+            }
+            if (authed_clients[id].guild != guild.id) {
+                res.render('auth.ejs', {reason: "Not authenticated for this guild."}, function(err, html) {
+                    res.send(html);
+                    if (err) console.error(err);
+                });
+                return;
+            }
+            next();
+        });
+        return;
+    }
+    if (authed_clients[id].guild != guild.id) {
+        res.render('auth.ejs', {reason: "Not authenticated for this guild: " + authed_clients[id].guild + " != " + guild.id}, function(err, html) {
+            res.send(html);
+            if (err) console.error(err);
+        });
+        return;
+    }
+    next();
+});
+app.all('/:guild/', function(req, res, next) {
     var guild = client.guilds.cache.get(req.params.guild);
     if (!guild) {
         var alias = aliases.findOne({ where: { shortname: req.params.guild } } ).then(function(alias) {
@@ -49,8 +136,7 @@ app.get('/:guild/', function(req, res) {
     }
 });
 
-app.get('/:guild/:channel/', function(req, res) {
-    if (!check_connected()) { return res.send(not_connected); }
+app.all('/:guild/:channel/', function(req, res, next) {
     var guild = client.guilds.cache.get(req.params.guild);
     if (!guild) {
         return res.send("cannot find guild");
@@ -69,8 +155,7 @@ app.get('/:guild/:channel/', function(req, res) {
     });
 });
 
-app.get('/:guild/:channel/:message', function(req, res) {
-    if (!check_connected()) { return res.send(not_connected); }
+app.all('/:guild/:channel/:message', function(req, res, next) {
     db.findOne({
       where: {
         guild: req.params.guild,
@@ -95,7 +180,14 @@ app.get('/:guild/:channel/:message', function(req, res) {
 
         channel.messages.fetch(pin.message).then(function(msg) {
             var formatted_message_content = format_msg_content(msg.content, guild);
-            res.render('pin.ejs', {pin: pin, pinner: pinner, msg: msg, formatted_message_content: formatted_message_content}, function(err, html) {
+            res.render('pin.ejs', {
+                pin: pin,
+                pinner: pinner,
+                msg: msg,
+                formatted_message_content: formatted_message_content,
+                // next: next,
+                // prev: prev
+            }, function(err, html) {
                 res.send(html);
                 if (err) console.error(err);
             });
@@ -106,8 +198,7 @@ app.get('/:guild/:channel/:message', function(req, res) {
     });
 });
 
-app.get('/:guild/:channel/:message/saved', function(req, res) {
-    if (!check_connected()) { return res.send(not_connected); }
+app.all('/:guild/:channel/:message/saved', function(req, res, next) {
     db.findOne({
       where: {
         guild: req.params.guild,
@@ -139,10 +230,11 @@ app.get('/:guild/:channel/:message/saved', function(req, res) {
     });
 });
 
-var server = function(discord_client, pin_db, alias_db) {
+var server = function(discord_client, pin_db, alias_db, otps_clientids) {
     client = discord_client;
     db = pin_db;
     aliases = alias_db;
+    otps = otps_clientids;
     console.log("discord connected to http");
 }
 
