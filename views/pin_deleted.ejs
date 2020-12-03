@@ -4,6 +4,12 @@
 Pin Bot - Deleted Pin
 </title>
 <style>
+.tag:after {
+    content: ",";
+}
+.tag:last-of-type:after {
+    content: "";
+}
 pre {
     max-width: 100%;
     word-break: break-word;
@@ -42,9 +48,13 @@ Pinned by <b><%= pin.pinner_name %></b> at
 <% } %>
 </p>
 <hr>
-<h3>Tags</h3>
-<% for (let tag of tag_list) { %>
-<p><%= tag.text %></p>
+<% if (!tag_list.length) { %>
+    <i>No tags.</i>
+<% } else { %>
+    <i>Tags:</i>
+    <% for (let tag of tag_list) { %>
+    <span class="tag"><%= tag.text %></span>
+    <% } %>
 <% } %>
 <hr>
 <% if (msg_exists) { %>

@@ -4,6 +4,13 @@
 Pin Bot - @<%= msg.author.username %>
 </title>
 <style>
+.tag:after {
+    content: ",";
+}
+.tag:last-of-type:after {
+    content: "";
+}
+
 pre {
     max-width: 100%;
     word-break: break-word;
@@ -77,9 +84,13 @@ Posted in <a href="./">#<%= msg.channel.name %></a> at <%= new Date(msg.createdT
     </div>
 <% } %>
 <hr>
-<h3>Tags</h3>
-<% for (let tag of tag_list) { %>
-<p><%= tag.text %></p>
+<% if (!tag_list.length) { %>
+    <i>No tags.</i>
+<% } else { %>
+    <i>Tags:</i>
+    <% for (let tag of tag_list) { %>
+    <span class="tag"><%= tag.text %></span>
+    <% } %>
 <% } %>
 <hr>
 <p>
