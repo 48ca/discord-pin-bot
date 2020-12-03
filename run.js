@@ -146,7 +146,6 @@ var tag = function(orig_message, tag_id, tag_cmd, tag_str) {
                         channel.send("No tags for this pin");
                         return;
                     }
-                    console.log(tags);
                     var str = "Tags:";
                     tags.forEach(function(tag) {
                         str += " " + tag.text;
@@ -293,7 +292,6 @@ client.on("message", async message => {
       pin(message, message.channel.guild, message.channel, message.author, arg);
     } else {
         message.channel.messages.fetch({ limit: 2 }).then(function(messages) {
-          console.log(messages);
           for (let msg of messages.values()) {
               if (msg.id != message.id) {
                 if (msg.content != "pin") {
