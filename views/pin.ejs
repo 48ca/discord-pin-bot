@@ -1,9 +1,13 @@
 <html>
 <head>
+<title>
+Pin Bot - @<%= msg.author.username %>
+</title>
 <style>
 pre {
     max-width: 100%;
-    word-wrap: break-word;
+    word-break: break-word;
+    white-space: break-spaces;
 }
 .top-container {
     display: grid;
@@ -71,6 +75,11 @@ Posted in <a href="./">#<%= msg.channel.name %></a> at <%= new Date(msg.createdT
             <audio controls width="<%= attachment.width %>" src="<%= attachment.url %>"></audio>
         <% } %>
     </div>
+<% } %>
+<hr>
+<h3>Tags</h3>
+<% for (let tag of tag_list) { %>
+<p><%= tag.text %></p>
 <% } %>
 <hr>
 <p>

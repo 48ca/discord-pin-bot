@@ -1,5 +1,14 @@
 <html>
 <head>
+<title>
+Pin Bot - Deleted Pin
+</title>
+<style>
+pre {
+    max-width: 100%;
+    word-break: break-word;
+    white-space: break-spaces;
+}
 </style>
 </head>
 <body>
@@ -32,6 +41,11 @@ Pinned by <b><%= pin.pinner_name %></b> at
 <i>No content</i>
 <% } %>
 </p>
+<hr>
+<h3>Tags</h3>
+<% for (let tag of tag_list) { %>
+<p><%= tag.text %></p>
+<% } %>
 <hr>
 <% if (msg_exists) { %>
 <p>

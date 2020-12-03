@@ -44,12 +44,18 @@ var Pin = seq.define('pin', {
     content: { type: Sequelize.STRING }
 });
 
+var Tag = seq.define('tag', {
+    text: { type: Sequelize.STRING }
+}, { timestamps: false });
+
+Pin.hasMany(Tag);
+
 var otps = {};
 var otps_clientids = {};
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-  pin_http.server(client, Pin, Alias, otps_clientids);
+  pin_http.server(client, Pin, Alias, Tag, otps_clientids);
 });
 
 Pin.sync().then(function() {
@@ -59,6 +65,102 @@ Pin.sync().then(function() {
 Alias.sync().then(function() {
     console.log("Alias table created");
 });
+
+Tag.sync().then(function() {
+    console.log("Tag table created");
+});
+var handled = function(orig_message, backup) {
+    var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
+    if (!emoji_id) {
+        channel.send(backup);
+    } else {
+        orig_message.react(emoji_id).catch(function(e) {
+            console.log("Could not react: " + e);
+        });
+    }
+}
+
+var tag = function(orig_message, tag_id, tag_cmd, tag_str) {
+    var channel = orig_message.channel;
+    var guild = orig_message.channel.guild;
+    Pin.findOne({
+        where: {
+            guild: guild.id,
+            channel: channel.id,
+            message: tag_id
+        }
+    }).then(function(pin) {
+        if (!pin) {
+            channel.send("Could not find pin for message " + tag_id);
+            return;
+        } else {
+            if (tag_cmd == "add") {
+                if (!tag_str) {
+                    channel.send("Please specify a tag");
+                    return;
+                }
+                Tag.findOne({
+                    where: {
+                        text: tag_str,
+                        pinId: pin.id,
+                    }
+                }).then(function(tag) {
+                    if (tag) {
+                        channel.send("Tag already exists for this pin");
+                        return;
+                    }
+                    Tag.create({
+                        text: tag_str,
+                        pinId: pin.id,
+                    }).then(function() {
+                        handled(orig_message, "Tag added: " + tag_str);
+                    });
+                });
+                return;
+            } else if (tag_cmd == "delete") {
+                if (!tag_str) {
+                    channel.send("Please specify a tag");
+                    return;
+                }
+                Tag.findOne({
+                    where: {
+                        text: tag_str,
+                        pinId: pin.id,
+                    }
+                }).then(function(tag) {
+                    if (!tag) {
+                        channel.send("Tag does not exist for this pin");
+                        return;
+                    }
+                    tag.destroy();
+                    handled(orig_message, "Tag deleted");
+                });
+                return;
+            } else if (!tag_cmd || tag_cmd == "list") {
+                Tag.findAll({
+                    where: {
+                        pinId: pin.id,
+                    }
+                }).then(function(tags) {
+                    if (!tags) {
+                        channel.send("No tags for this pin");
+                        return;
+                    }
+                    console.log(tags);
+                    var str = "Tags:";
+                    tags.forEach(function(tag) {
+                        str += " " + tag.text;
+                    });
+                    channel.send(str);
+                    return;
+                });
+            } else {
+                channel.send("Please use `tag add/delete/list`");
+                return;
+            }
+        }
+    });
+}
 
 var deletePin = function(orig_message, guild, channel, pinner, desired_message_id) {
   Pin.findOne({
@@ -73,14 +175,7 @@ var deletePin = function(orig_message, guild, channel, pinner, desired_message_i
         return;
     }
     row.destroy();
-    var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
-    if (!emoji_id) {
-        channel.send("Unpinned " + desired_message_id);
-    } else {
-        orig_message.react(emoji_id).catch(function(e) {
-            channel.send("Unpinned " + desired_message_id);
-        });;
-    }
+    handled(orig_message, "Unpinned " + desired_message_id);
   });
 };
 
@@ -107,14 +202,7 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
           content: message.content,
           message: message.id
         }).then(function() {
-            var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
-            if (!emoji_id) {
-                channel.send("Pinned http://" + BASE_URL + "/" + guild.id + "/" + channel.id + "/" + message.id);
-            } else {
-                orig_message.react(emoji_id).catch(function(e) {
-                    console.log("Could not react: " + e);
-                });
-            }
+            handled(orig_message, "Pinned http://" + BASE_URL + "/" + guild.id + "/" + channel.id + "/" + message.id);
         });
       });
   }).catch(function(e) {
@@ -127,13 +215,17 @@ client.on("message", async message => {
     return;
   }
   var lower = message.content.toLowerCase();
-  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|otp|list|alias (.*$)))?$/);
+  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|otp|list|alias (.*$)|tag(?: ([0-9]+) ([^ ]+)(?: (.+))?)))?$/);
   if (!match_res) {
     // ignored
     return;
   }
   var cmd = match_res[1];
   var arg = match_res[2];
+  var desired_alias = match_res[3];
+  var tag_id = match_res[4];
+  var tag_cmd = match_res[5];
+  var tag_str = match_res[6];
   if (cmd == "unpin" && arg) {
     return deletePin(message, message.channel.guild, message.channel, message.author, arg);
   }
@@ -162,7 +254,9 @@ client.on("message", async message => {
             delete otps_clientids[otp];
         }, 30000);
         message.author.send(`OTP: ${otp} (valid for 30s)`);
-        message.delete();
+        setTimeout(function() {
+            message.delete();
+        }, 1000);
         return;
     }
     if (arg == "list") {
@@ -170,7 +264,6 @@ client.on("message", async message => {
         return;
     }
     else if (arg && arg.startsWith("alias")) {
-        var desired_alias = match_res[3];
         Alias.findOne({
             where: { [Op.or]: [
                     { guild: message.channel.guild.id },
@@ -190,6 +283,10 @@ client.on("message", async message => {
         }).catch(function(e) {
             console.log("Error executing query: " + e);
         });
+        return;
+    }
+    else if (arg && arg.startsWith("tag")) {
+        tag(message, tag_id, tag_cmd, tag_str);
         return;
     }
     else if (arg) {

@@ -6,6 +6,10 @@ var app = express();
 var client = undefined;
 var db = undefined;
 var aliases = undefined;
+var tags = undefined;
+
+var Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
 var check_connected = function() {
     return client != undefined && db != undefined;
@@ -25,6 +29,30 @@ var otps = {};
 var authed_clients = {};
 
 var cookie_age = 1000 * 60 * 30;
+
+var get_tags = function(pins) {
+    var tag_dict = {};
+    var pin_id_query = [];
+    pins.forEach(function(pin) {
+        pin_id_query.push({
+            pinId: pin.id
+        });
+    });
+    return new Promise(resolve => {
+        tags.findAll({
+            where: { [Op.or]: pin_id_query }
+        }).then(function(ts) {
+            ts.forEach(function(tag) {
+                if (!tag_dict[tag.pinId]) {
+                    tag_dict[tag.pinId] = [tag.text];
+                } else {
+                    tag_dict[tag.pinId].push(tag.text);
+                }
+            });
+            resolve(tag_dict);
+        });
+    });
+}
 
 var format_msg_content = function(content, guild) {
     return content.replace(/<@!(\d+)>/g, function(full, id) {
@@ -152,9 +180,11 @@ app.all('/:guild/:channel/', function(req, res, next) {
         channel: req.params.channel,
       }
     }).then(function(pins) {
-        res.render('channel.ejs', {format: format_msg_content, guild: guild, channel: channel, pins: pins}, function(err, html) {
-            res.send(html);
-            if (err) console.error(err);
+        get_tags(pins).then(function(tag_dict) {
+            res.render('channel.ejs', {format: format_msg_content, guild: guild, channel: channel, tag_dict: tag_dict, pins: pins}, function(err, html) {
+                res.send(html);
+                if (err) console.error(err);
+            });
         });
     });
 });
@@ -182,21 +212,26 @@ app.all('/:guild/:channel/:message', function(req, res, next) {
         var pinner_user = guild.members.cache.get(pin.pinner);
         var pinner = pinner_user ? pinner_user.user : undefined;
 
-        channel.messages.fetch(pin.message).then(function(msg) {
-            var formatted_message_content = format_msg_content(msg.content, guild);
-            res.render('pin.ejs', {
-                pin: pin,
-                pinner: pinner,
-                msg: msg,
-                formatted_message_content: formatted_message_content,
-                // next: next,
-                // prev: prev
-            }, function(err, html) {
-                res.send(html);
-                if (err) console.error(err);
+        tags.findAll({
+            where: { pinId: pin.id }
+        }).then(function(tag_list) {
+            channel.messages.fetch(pin.message).then(function(msg) {
+                var formatted_message_content = format_msg_content(msg.content, guild);
+                res.render('pin.ejs', {
+                    pin: pin,
+                    pinner: pinner,
+                    msg: msg,
+                    tag_list: tag_list,
+                    formatted_message_content: formatted_message_content,
+                    // next: next,
+                    // prev: prev
+                }, function(err, html) {
+                    res.send(html);
+                    if (err) console.error(err);
+                });
+            }).catch(function(e) {
+                res.redirect(req.params.message + "/saved");
             });
-        }).catch(function(e) {
-            res.redirect(req.params.message + "/saved");
         });
       }
     });
@@ -216,9 +251,13 @@ app.all('/:guild/:channel/:message/saved', function(req, res, next) {
         var guild = client.guilds.cache.get(pin.guild);
         var channel = guild ? guild.channels.cache.get(pin.channel) : undefined;
         var render = function(msg_exists) {
-            res.render('pin_deleted.ejs', {msg_exists: msg_exists, pin: pin, channel:channel, guild:guild}, function(err, html) {
-                res.send(html);
-                if (err) console.error(err);
+            tags.findAll({
+                where: { pinId: pin.id }
+            }).then(function(tag_list) {
+                res.render('pin_deleted.ejs', {msg_exists: msg_exists, tag_list: tag_list, pin: pin, channel:channel, guild:guild}, function(err, html) {
+                    res.send(html);
+                    if (err) console.error(err);
+                });
             });
         }
         if (channel) {
@@ -234,10 +273,11 @@ app.all('/:guild/:channel/:message/saved', function(req, res, next) {
     });
 });
 
-var server = function(discord_client, pin_db, alias_db, otps_clientids) {
+var server = function(discord_client, pin_db, alias_db, tag_db, otps_clientids) {
     client = discord_client;
     db = pin_db;
     aliases = alias_db;
+    tags = tag_db;
     otps = otps_clientids;
     console.log("discord connected to http");
 }

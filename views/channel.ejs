@@ -1,12 +1,28 @@
 <html>
 <head>
+<title>
+<% if (channel) { %>
+#<%= channel.name %>
+<% } else { %>
+Unknown Channel
+<% } %>
+</title>
 <style>
-p {
+p.pin {
    white-space: nowrap;
    overflow: hidden;
    text-overflow: ellipsis;
    display: block;
    margin: 2px;
+}
+.tags:before {
+    content: "tags: ";
+    font-weight: bold;
+}
+.tags {
+    margin-left: 10px;
+    float: right;
+    border-bottom: 1px dotted black;
 }
 </style>
 </head>
@@ -20,7 +36,7 @@ p {
 </h1>
 <hr>
 <% pins.forEach(function(pin) { %>
-    <p>
+    <p class="pin">
     <%= new Date(pin.updatedAt).toLocaleString() %>
     <a href="<%= pin.message %>">
         <b>@<%= pin.author_name %>:</b>
@@ -33,6 +49,13 @@ p {
             <i>Attachment only</i>
         <% } %>
     </a>
+    <% if (pin.id in tag_dict) { %>
+        <span class="tags">
+        <% tag_dict[pin.id].forEach(function(tag) { %>
+            <%= tag %>
+        <% }); %>
+        </span>
+    <% } %>
     </p>
 <% }); %>
 <% if (pins.length == 0) { %>
