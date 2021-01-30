@@ -214,7 +214,7 @@ client.on("message", async message => {
     return;
   }
   var lower = message.content.toLowerCase();
-  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|otp|list|alias (.*$)|tag(?: ([0-9]+) ([^ ]+)(?: (.+))?)))?$/);
+  var match_res = lower.match(/^!?((?:un)?pin)(?: ([0-9]+|link|otp|list|alias (.*$)|tag(?:(?: ([0-9]+))? ([^ ]+)(?: (.+))?)))?$/);
   if (!match_res) {
     // ignored
     return;
@@ -285,7 +285,19 @@ client.on("message", async message => {
         return;
     }
     else if (arg && arg.startsWith("tag")) {
-        tag(message, tag_id, tag_cmd, tag_str);
+        if (!tag_id) {
+            Pin.findOne({
+                order: [ ['createdAt', 'DESC' ] ],
+            }).then(function(entry) {
+                if (entry) {
+                    tag(message, "" + entry.message, tag_cmd, tag_str);
+                } else {
+                    message.channel.send("No pins");
+                }
+            });
+        } else {
+            tag(message, tag_id, tag_cmd, tag_str);
+        }
         return;
     }
     else if (arg) {
