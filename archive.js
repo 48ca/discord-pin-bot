@@ -67,21 +67,36 @@ client.login(process.env.BOT).catch(function(e) {
           return;
       }
 
-      var pinner_user = guild.members.cache.get(pin.pinner);
+      var pinner_user = await guild.members.fetch(pin.pinner).catch(function (err) {
+        console.warn("Unknown user:", pin.pinner, err);
+      });
+      if (pinner_user) {
+          fs.writeFile(`${dir}/pinner.json`, JSON.stringify(pinner_user.user, null, 4), function(err) {
+              if (err) {
+                  console.warn("Failed writing pinner.json", message_id, err);
+              }
+          });
+      }
+      var author_user = await guild.members.fetch(pin.author).catch(function (err) {
+        console.warn("Unknown user:", pin.author, err);
+      });
+      if (author_user) {
+          fs.writeFile(`${dir}/author.json`, JSON.stringify(author_user.user, null, 4), function(err) {
+              if (err) {
+                  console.log("Error writing author.json for pin", pin.id, err);
+              }
+          });
+      }
       var message = await channel.messages.fetch(message_id).catch(function(err) {
         console.warn("Could not find message:", message);
       });
       if (!message) {
+          fs.writeFile(`${dir}/DELETED`, "", function(err) { console.log(err); });
           return;
       }
       fs.writeFile(`${dir}/content.txt`, message.content, function(err) {
           if (err) {
               console.warn("Failed writing content.txt", message_id, err);
-          }
-      });
-      fs.writeFile(`${dir}/author.json`, JSON.stringify(message.author, null, 4), function(err) {
-          if (err) {
-              console.log("Error writing author.json for pin", pin.id, err);
           }
       });
       if (message.attachments.size > 0) {
