@@ -61,11 +61,6 @@ client.login(process.env.BOT).catch(function(e) {
           console.warn("Could not find guild:", guild_id);
           return;
       }
-      var channel = guild.channels.cache.get(channel_id);
-      if (!channel) {
-          console.warn("Could not find channel:", channel_id);
-          return;
-      }
 
       var pinner_user = await guild.members.fetch(pin.pinner).catch(function (err) {
         console.warn("Unknown user:", pin.pinner, err);
@@ -87,11 +82,18 @@ client.login(process.env.BOT).catch(function(e) {
               }
           });
       }
+
+      var channel = guild.channels.cache.get(channel_id);
+      if (!channel) {
+          console.warn("Could not find channel:", channel_id);
+          return;
+      }
+
       var message = await channel.messages.fetch(message_id).catch(function(err) {
-        console.warn("Could not find message:", message);
+        console.warn("Could not find message:", message_id);
       });
       if (!message) {
-          fs.writeFile(`${dir}/DELETED`, "", function(err) { console.log(err); });
+          fs.writeFile(`${dir}/DELETED`, "", function(err) { if (err) { console.log("Error writing DELETED file: ", err); }});
           return;
       }
       fs.writeFile(`${dir}/content.txt`, message.content, function(err) {
