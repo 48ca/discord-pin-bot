@@ -35,6 +35,8 @@ var Tag = seq.define('tag', {
 writeMeta = function(pin, fn) {
 }
 
+var attachments_requested = 0;
+var attachments_finished = 0;
 
 client.login(process.env.BOT).catch(function(e) {
   console.error('Caught error ' + e);
@@ -77,32 +79,46 @@ client.login(process.env.BOT).catch(function(e) {
               console.warn("Failed writing content.txt", message_id, err);
           }
       });
+      fs.writeFile(`${dir}/author.json`, JSON.stringify(message.author, null, 4), function(err) {
+          if (err) {
+              console.log("Error writing author.json for pin", pin.id, err);
+          }
+      });
       if (message.attachments.size > 0) {
           var a_dir = `${dir}/attachments`;
           fs.mkdirSync(a_dir, { recursive: true });
           for (let a of message.attachments.values()) {
-              console.log(a);
+              attachments_requested += 1;
               let fn = a.name;
               var real_fn = `${a_dir}/${fn}`;
               var file = fs.createWriteStream(real_fn);
-              var req = https.get(a.url, function(resp) {
-                  resp.pipe(file);
-                  file.on('finish', function() {
-                      file.close(function() {
-                          console.log("Finished writing attachment:", message_id, fn);
+              var prom = new Promise(function(resolve, reject) {
+                  var req = https.get(a.url, function(resp) {
+                      resp.pipe(file);
+                      file.on('finish', function() {
+                          file.close(function() {
+                              console.log("Finished writing attachment:", message_id, fn);
+                          });
+                          attachments_finished += 1;
+                          console.log(`attachments: ${attachments_finished}/${attachments_requested}`);
+                          resolve();
                       });
+                  }).on('error', function(err) {
+                      fs.unlink(real_fn);
+                      console.log("Failed to write attachment:", message_id, fn);
+                      reject();
                   });
-              }).on('error', function(err) {
-                  fs.unlink(real_fn);
-                  console.log("Failed to write attachment:", message_id, fn);
               });
+              await prom;
           }
       }
   };
-  pins.forEach(function(el, ind) {
-    setTimeout(function() { run(el); }, ind * 1000);
-  });
+  for (let pin of pins) {
+    await run(pin);
+  }
+  console.log("Finished pins");
   console.log(e);
+  process.exit(0);
 });
 
 console.log("Sent login request");
