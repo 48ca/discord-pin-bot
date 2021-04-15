@@ -47,6 +47,10 @@ client.login(process.env.BOT).catch(function(e) {
       var channel_id = pin.channel;
       var message_id = pin.message;
       var dir = `archive/${guild_id}/${channel_id}/${message_id}`;
+      if (fs.existsSync(dir)) {
+        console.log("Skipping ", dir);
+        return;
+      }
       fs.mkdirSync(dir, { recursive: true });
       console.log(pin.id, pin.pinner_name, guild_id, channel_id, message_id);
       

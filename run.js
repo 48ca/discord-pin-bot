@@ -3,6 +3,9 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
 
+const fs = require('fs');
+const https = require('https');
+
 var process = require('process');
 
 var Sequelize = require('sequelize');
@@ -69,6 +72,16 @@ Alias.sync().then(function() {
 Tag.sync().then(function() {
     console.log("Tag table created");
 });
+var handled_archive = function(orig_message, backup) {
+    var emoji_id = client.emojis.cache.find(emoji => emoji.name == "PepeNote");
+    if (!emoji_id) {
+        channel.send(backup);
+    } else {
+        orig_message.react(emoji_id).catch(function(e) {
+            console.log("Could not react: " + e);
+        });
+    }
+}
 var handled = function(orig_message, backup) {
     var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
     if (!emoji_id) {
@@ -112,7 +125,7 @@ var tag = function(orig_message, tag_id, tag_cmd, tag_str) {
                     Tag.create({
                         text: tag_str,
                         pinId: pin.id,
-                    }).then(function() {
+                    }).then(async function() {
                         handled(orig_message, "Tag added: " + tag_str);
                     });
                 });
@@ -200,8 +213,10 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
           pinner_name: pinner.username,
           content: message.content,
           message: message.id
-        }).then(function() {
+        }).then(async function(pin) {
             handled(orig_message, "Pinned http://" + BASE_URL + "/" + guild.id + "/" + channel.id + "/" + message.id);
+            await archive(pin);
+            handled_archive(orig_message, "Pin archived");
         });
       });
   }).catch(function(e) {
@@ -340,3 +355,93 @@ client.login(process.env.BOT).catch(function(e) {
 });
 
 console.log("Sent login request");
+
+var archive = async function(pin) {
+  var guild_id = pin.guild;
+  var channel_id = pin.channel;
+  var message_id = pin.message;
+  var dir = `archive/${guild_id}/${channel_id}/${message_id}`;
+  console.log("Archiving " + dir);
+  fs.mkdirSync(dir, { recursive: true });
+  console.log(pin.id, pin.pinner_name, guild_id, channel_id, message_id);
+  
+  fs.writeFile(`${dir}/raw.json`, JSON.stringify(pin, null, 4), function(err) {
+      if (err) {
+          console.log("Error writing raw.json for pin", pin.id, err);
+      }
+  });
+
+  var guild = client.guilds.cache.get(guild_id);
+  if (!guild) {
+      console.warn("Could not find guild:", guild_id);
+      return;
+  }
+
+  var pinner_user = await guild.members.fetch(pin.pinner).catch(function (err) {
+    console.warn("Unknown user:", pin.pinner, err);
+  });
+  if (pinner_user) {
+      fs.writeFile(`${dir}/pinner.json`, JSON.stringify(pinner_user.user, null, 4), function(err) {
+          if (err) {
+              console.warn("Failed writing pinner.json", message_id, err);
+          }
+      });
+  }
+  var author_user = await guild.members.fetch(pin.author).catch(function (err) {
+    console.warn("Unknown user:", pin.author, err);
+  });
+  if (author_user) {
+      fs.writeFile(`${dir}/author.json`, JSON.stringify(author_user.user, null, 4), function(err) {
+          if (err) {
+              console.log("Error writing author.json for pin", pin.id, err);
+          }
+      });
+  }
+
+  var channel = guild.channels.cache.get(channel_id);
+  if (!channel) {
+      console.warn("Could not find channel:", channel_id);
+      return;
+  }
+
+  var message = await channel.messages.fetch(message_id).catch(function(err) {
+    console.warn("Could not find message:", message_id);
+  });
+  if (!message) {
+      fs.writeFile(`${dir}/DELETED`, "", function(err) { if (err) { console.log("Error writing DELETED file: ", err); }});
+      return;
+  }
+  fs.writeFile(`${dir}/content.txt`, message.content, function(err) {
+      if (err) {
+          console.warn("Failed writing content.txt", message_id, err);
+      }
+  });
+  if (message.attachments.size > 0) {
+      var a_dir = `${dir}/attachments`;
+      fs.mkdirSync(a_dir, { recursive: true });
+      for (let a of message.attachments.values()) {
+          attachments_requested += 1;
+          let fn = a.name;
+          var real_fn = `${a_dir}/${fn}`;
+          var file = fs.createWriteStream(real_fn);
+          var prom = new Promise(function(resolve, reject) {
+              var req = https.get(a.url, function(resp) {
+                  resp.pipe(file);
+                  file.on('finish', function() {
+                      file.close(function() {
+                          console.log("Finished writing attachment:", message_id, fn);
+                      });
+                      attachments_finished += 1;
+                      console.log(`attachments: ${attachments_finished}/${attachments_requested}`);
+                      resolve();
+                  });
+              }).on('error', function(err) {
+                  fs.unlink(real_fn);
+                  console.log("Failed to write attachment:", message_id, fn);
+                  reject();
+              });
+          });
+          await prom;
+      }
+  }
+};
