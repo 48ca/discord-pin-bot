@@ -78,6 +78,7 @@ var handled_archive = function(orig_message, backup) {
         channel.send(backup);
     } else {
         orig_message.react(emoji_id).catch(function(e) {
+            channel.send(backup);
             console.log("Could not react: " + e);
         });
     }
@@ -88,6 +89,7 @@ var handled = function(orig_message, backup) {
         channel.send(backup);
     } else {
         orig_message.react(emoji_id).catch(function(e) {
+            channel.send(backup);
             console.log("Could not react: " + e);
         });
     }
@@ -420,7 +422,6 @@ var archive = async function(pin) {
       var a_dir = `${dir}/attachments`;
       fs.mkdirSync(a_dir, { recursive: true });
       for (let a of message.attachments.values()) {
-          attachments_requested += 1;
           let fn = a.name;
           var real_fn = `${a_dir}/${fn}`;
           var file = fs.createWriteStream(real_fn);
@@ -431,8 +432,6 @@ var archive = async function(pin) {
                       file.close(function() {
                           console.log("Finished writing attachment:", message_id, fn);
                       });
-                      attachments_finished += 1;
-                      console.log(`attachments: ${attachments_finished}/${attachments_requested}`);
                       resolve();
                   });
               }).on('error', function(err) {

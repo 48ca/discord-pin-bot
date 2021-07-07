@@ -35,9 +35,6 @@ var Tag = seq.define('tag', {
 writeMeta = function(pin, fn) {
 }
 
-var attachments_requested = 0;
-var attachments_finished = 0;
-
 client.login(process.env.BOT).catch(function(e) {
   console.error('Caught error ' + e);
 }).then(async function(e) {
@@ -109,7 +106,6 @@ client.login(process.env.BOT).catch(function(e) {
           var a_dir = `${dir}/attachments`;
           fs.mkdirSync(a_dir, { recursive: true });
           for (let a of message.attachments.values()) {
-              attachments_requested += 1;
               let fn = a.name;
               var real_fn = `${a_dir}/${fn}`;
               var file = fs.createWriteStream(real_fn);
@@ -120,8 +116,6 @@ client.login(process.env.BOT).catch(function(e) {
                           file.close(function() {
                               console.log("Finished writing attachment:", message_id, fn);
                           });
-                          attachments_finished += 1;
-                          console.log(`attachments: ${attachments_finished}/${attachments_requested}`);
                           resolve();
                       });
                   }).on('error', function(err) {
