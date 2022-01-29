@@ -259,8 +259,14 @@ client.on('messageReactionRemove', async (reaction, user) => {
       }
     }
       
-    if(reaction.emoji.name === 'pin') {
-        deletePin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
+    // yes this is disguisting but it's so we don't have to use the server specific id for the pin emoji
+    if (reaction.emoji.name === 'pin') {
+      for (let [key, value] of reaction.message.reactions.cache) {
+        if (value._emoji.name === 'pin'){
+            return;
+        }
+    }
+      deletePin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
     }
   });
 
