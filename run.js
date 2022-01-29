@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({ partials: ['MESSAGE', 'CHANNEL', 'REACTION']});
 
 const fs = require('fs');
 const https = require('https');
@@ -240,7 +240,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     }
   }
 
-  if(reaction.emoji.name === 'pushpin') {
+  if(reaction.emoji.name === 'pin') {
     pin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
   }
 });
@@ -463,3 +463,5 @@ var archive = async function(pin) {
     }
   }
 };
+
+// vim: et ts=2 sw=2
