@@ -241,9 +241,39 @@ client.on('messageReactionAdd', async (reaction, user) => {
   }
 
   if(reaction.emoji.name === 'pin') {
+    for (let [key, value] of reaction.message.reactions.cache) {
+      if (value._emoji.name === 'pin'){
+          return;
+      }
+  }
     pin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
   }
 });
+
+client.on('messageReactionRemove', async (reaction, user) => {
+    // source: https://discordjs.guide/popular-topics/reactions.html#listening-for-reactions-on-old-messages
+    // When a reaction is received, check if the structure is partial
+    if (reaction.partial) {
+      // If the message this reaction belongs to was removed, the fetching might result in an API error which should be handled
+      try {
+        await reaction.fetch();
+      } catch (error) {
+        console.error('Something went wrong when fetching the message:', error);
+        // Return as `reaction.message.author` may be undefined/null
+        return;
+      }
+    }
+      
+    // yes this is disguisting but it's so we don't have to use the server specific id for the pin emoji
+    if (reaction.emoji.name === 'pin') {
+      for (let [key, value] of reaction.message.reactions.cache) {
+        if (value._emoji.name === 'pin'){
+            return;
+        }
+    }
+      deletePin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
+    }
+  });
 
 client.on("message", async message => {
   if(message.channel.type == 'dm') {
