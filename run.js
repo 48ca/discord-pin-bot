@@ -241,6 +241,11 @@ client.on('messageReactionAdd', async (reaction, user) => {
   }
 
   if(reaction.emoji.name === 'pin') {
+    for (let [key, value] of reaction.message.reactions.cache) {
+      if (value._emoji.name === 'pin'){
+          return;
+      }
+  }
     pin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
   }
 });
