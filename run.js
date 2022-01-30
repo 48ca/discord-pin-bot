@@ -193,7 +193,7 @@ var deletePin = function(orig_message, guild, channel, pinner, desired_message_i
   });
 };
 
-var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
+var pin = function(orig_message, guild, channel, pinner, desired_message_id, dupe_ok) {
   channel.messages.fetch(desired_message_id).then(function(message) {
     Pin.findOne({
       where: {
@@ -202,7 +202,7 @@ var pin = function(orig_message, guild, channel, pinner, desired_message_id) {
         message: message.id
       }
     }).then(function(exists) {
-      if (exists) { 
+      if (exists && !dupe_ok) {
         channel.send("Already pinned http://" + BASE_URL + "/" + guild.id + "/" + channel.id + "/" + message.id);
         return;
       }
@@ -241,12 +241,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
   }
 
   if(reaction.emoji.name === 'pin') {
-    for (let [key, value] of reaction.message.reactions.cache) {
-      if (value._emoji.name === 'pin'){
-          return;
-      }
-  }
-    pin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id);
+    pin(reaction.message, reaction.message.channel.guild, reaction.message.channel, user, reaction.message.id, /*dupe_ok=*/true);
   }
 });
 
@@ -367,13 +362,13 @@ client.on("message", async message => {
       return;
     }
     else if (arg) {
-      pin(message, message.channel.guild, message.channel, message.author, arg);
+      pin(message, message.channel.guild, message.channel, message.author, arg, /*dupe_ok=*/false);
     } else {
       message.channel.messages.fetch({ limit: 2 }).then(function(messages) {
         for (let msg of messages.values()) {
           if (msg.id != message.id) {
             if (msg.content != "pin") {
-              pin(message, message.channel.guild, message.channel, message.author, msg.id);
+              pin(message, message.channel.guild, message.channel, message.author, msg.id, /*dupe_ok=*/false);
             }
             break;
           }
