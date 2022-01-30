@@ -89,7 +89,7 @@ var check_authed = function(req, res) {
             return true;
         }
     }
-    if (req.session.client_id && req.session.client_id in authed_clients) {
+    if (req.session && req.session.client_id && req.session.client_id in authed_clients) {
         return true;
     }
     res.render('auth.ejs', {reason: ""}, function(err, html) {
