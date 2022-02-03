@@ -292,11 +292,15 @@ client.on("message", async message => {
   else if (cmd == "pin") {
     if (arg == "link") {
       Pin.findOne({
+        where: {
+          guild: message.channel.guild.id,
+          channel: message.channel.id,
+        },
         order: [ ['createdAt', 'DESC' ] ],
       }).then(function(entry) {
         if (entry) {
           var last_pin = entry.message;
-          message.channel.send("Last pin: http://" + BASE_URL + "/" + message.channel.guild.id + "/" + message.channel.id + "/" + last_pin);
+          message.channel.send("Last pin: http://" + BASE_URL + "/" + entry.guild + "/" + entry.channel + "/" + last_pin);
         } else {
           message.channel.send("No pins");
         }
