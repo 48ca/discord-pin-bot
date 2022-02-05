@@ -75,10 +75,10 @@ Tag.sync().then(function() {
 var handled_archive = function(orig_message, backup) {
   var emoji_id = client.emojis.cache.find(emoji => emoji.name == "PepeNote");
   if (!emoji_id) {
-    channel.send(backup);
+    orig_message.channel.send(backup);
   } else {
     orig_message.react(emoji_id).catch(function(e) {
-      channel.send(backup);
+      orig_message.channel.send(backup);
       console.log("Could not react: " + e);
     });
   }
@@ -86,10 +86,10 @@ var handled_archive = function(orig_message, backup) {
 var handled = function(orig_message, backup) {
   var emoji_id = client.emojis.cache.find(emoji => emoji.name == emoji_name);
   if (!emoji_id) {
-    channel.send(backup);
+    orig_message.channel.send(backup);
   } else {
     orig_message.react(emoji_id).catch(function(e) {
-      channel.send(backup);
+      orig_message.channel.send(backup);
       console.log("Could not react: " + e);
     });
   }
