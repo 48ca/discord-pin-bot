@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 
 const Discord = require('discord.js');
-const client = new Discord.Client({ partials: ['MESSAGE', 'CHANNEL', 'REACTION']});
+const client = new Discord.Client({
+  partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
+  intents: [
+    Discord.Intents.FLAGS.GUILDS,
+    Discord.Intents.FLAGS.GUILD_MEMBERS,
+    Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+    Discord.Intents.FLAGS.GUILD_MESSAGES,
+    Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS
+]});
 
 const fs = require('fs');
 const https = require('https');
