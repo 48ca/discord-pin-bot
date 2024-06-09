@@ -72,8 +72,10 @@ Posted in <a href="./">#<%= msg.channel.name %></a> at <%= new Date(msg.createdT
     <hr>
     <div style="border-left: dashed gray 1px; margin-left: 10px; padding-left: 10px">
         <p>
-        Attachment: <a href="<%= attachment.url %>"><%= attachment.url.substring(attachment.url.lastIndexOf("/") + 1) %></a></p>
-        <% var ends = function (ext) { return attachment.url.endsWith("." + ext) }; %>
+	<% var filename = attachment.url.substring(attachment.url.lastIndexOf("/") + 1) %>
+	<% var fn_for_user = filename.substring(0, filename.indexOf("?")) %>
+        Attachment: <a href="<%= attachment.url %>"><%= fn_for_user %></a></p>
+        <% var ends = function (ext) { return fn_for_user.endsWith("." + ext) }; %>
         <% if (ends("jpg") || ends("webp") || ends("png") || ends("gif")) { %>
             <img width="<%= attachment.width %>" src="<%= attachment.url %>"></img>
         <% } else if (ends("mkv") || ends("mp4") || ends("avi") || ends("webm")) { %>
